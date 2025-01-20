@@ -7,6 +7,7 @@ import com.Gintaras.tcgtrading.user_service.business.service.UserService;
 import com.Gintaras.tcgtrading.user_service.model.User;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -36,7 +37,8 @@ public class UserServiceImpl implements UserService {
     public ResponseEntity<User> saveUser(User user){
         UserDAO userDAO = userRepository.save(userMapper.UserToUserDAO(user));
         log.info("New User is saved: {}", user);
-        return ResponseEntity.ok(userMapper.UserDAOToUser(userDAO));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(userMapper.UserDAOToUser(userDAO));
     }
 
     @Override
@@ -86,4 +88,8 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.ok(user.get());
         }
     }
+
+
+
+
 }
