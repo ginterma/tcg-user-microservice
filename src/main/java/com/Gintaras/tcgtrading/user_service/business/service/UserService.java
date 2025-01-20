@@ -1,18 +1,19 @@
 package com.Gintaras.tcgtrading.user_service.business.service;
 
 import com.Gintaras.tcgtrading.user_service.model.User;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface UserService {
 
-    Optional<User> getUserById(Long id);
+    ResponseEntity<User> getUserById(Long id);
 
-    User saveUser(User user);
+    ResponseEntity<User> saveUser(User user);
 
-    void deleteUserById(Long id);
+    ResponseEntity<Void> deleteUserById(Long id);
 
-    List<User> getUsers();
+    ResponseEntity<List<User>> getUsers();
 
+    ResponseEntity<User> updateAverageRatingById(Long id);
 }

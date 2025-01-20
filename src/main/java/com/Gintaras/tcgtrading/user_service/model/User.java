@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class User {
 
-    @Min(value = 1, message = "Employee Id must be greater than 0")
-    @ApiModelProperty(notes = "Unique id of employee")
+    @Min(value = 1, message = "User Id must be greater than 0")
+    @ApiModelProperty(notes = "Unique id of User")
     private Long id;
 
     @ApiModelProperty(notes = "username of the User")

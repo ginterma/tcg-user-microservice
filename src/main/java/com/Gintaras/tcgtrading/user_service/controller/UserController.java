@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @RestController
 @Log4j2
@@ -34,16 +33,13 @@ public class UserController {
             @ApiResponse(code = 400, message = HTMLResponseMessages.HTTP_400),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    ResponseEntity<?> saveUser(@ApiParam(value = "User model that we want to save", required = true)
-                               @Valid @RequestBody User user, BindingResult bindingResult) {
+    public ResponseEntity<?> saveUser(@ApiParam(value = "User model that we want to save", required = true)
+                                      @Valid @RequestBody User user, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             log.warn(HTMLResponseMessages.HTTP_400);
             return ResponseEntity.badRequest().body(HTMLResponseMessages.HTTP_400);
         }
-        User savedUser = userService.saveUser(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
-
+        return userService.saveUser(user);
     }
 
     @PutMapping("/{id}")
@@ -55,29 +51,30 @@ public class UserController {
             @ApiResponse(code = 400, message = HTMLResponseMessages.HTTP_400),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    ResponseEntity<?> updateUser(@ApiParam(value = "The id of the user", required = true)
-                                 @PathVariable @NonNull Long id,
-                                 @ApiParam(value = "The updating user model", required = true)
-                                 @Valid @RequestBody User user, BindingResult bindingResult) {
+    public ResponseEntity<?> updateUser(@ApiParam(value = "The id of the user", required = true)
+                                        @PathVariable @NonNull Long id,
+                                        @ApiParam(value = "The updating user model", required = true)
+                                        @Valid @RequestBody User user, BindingResult bindingResult) {
+
         if (bindingResult.hasErrors()) {
             log.warn(HTMLResponseMessages.HTTP_400);
             return ResponseEntity.badRequest().body(HTMLResponseMessages.HTTP_400);
         }
         if (!Objects.equals(user.getId(), id)) {
             log.warn("Provided User ids are not equal: {}!={}", id, user.getId());
-            return ResponseEntity.badRequest().body("Unsuccessful request responds with this code." +
-                    "Passed data has errors - provided User ids are not equal.");
+            return ResponseEntity.badRequest().body("Unsuccessful request: provided User ids are not equal.");
         }
-        Optional<User> userById = userService.getUserById(id);
-        if (userById.isEmpty()) {
+        ResponseEntity<User> existingUserResponse = userService.getUserById(id);
+
+        if (existingUserResponse.getStatusCode().is2xxSuccessful()) {
+            User updatedUser = userService.saveUser(user).getBody();
+            return ResponseEntity.ok(updatedUser);
+        } else {
             log.info("User with id {} does not exist", id);
             return ResponseEntity.notFound().build();
         }
-        User updatedUser = userService.saveUser(user);
-        log.info("User with id {} is updated: {}", id, updatedUser);
-        return ResponseEntity.status(HttpStatus.OK).body(updatedUser);
     }
+
 
     @DeleteMapping("/{id}")
     @ApiOperation(value = "Deletes User in database",
@@ -88,62 +85,45 @@ public class UserController {
             @ApiResponse(code = 401, message = "The request requires user authentication"),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
             @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    ResponseEntity<?> deleteUserById(@ApiParam(value = "The id of the user", required = true)
-                                     @PathVariable @NonNull Long id) {
-        Optional<User> userById = userService.getUserById(id);
-        if (userById.isEmpty()) {
-            log.warn("User for delete with id {} is not found.", id);
-            return ResponseEntity.notFound().build();
-        }
-        userService.deleteUserById(id);
-        log.info("User with id {} is deleted: {}", id, userById);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-
+    public ResponseEntity<?> deleteUserById(@ApiParam(value = "The id of the user", required = true)
+                                            @PathVariable @NonNull Long id) {
+        return userService.deleteUserById(id);
     }
 
-    @ApiOperation(
-            value = "Get a list of all Users",
-            response = User.class)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
-            @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
-            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)
-    })
-    @ResponseStatus(value = HttpStatus.OK)
     @GetMapping(produces = "application/json")
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> foundUsers = userService.getUsers();
-        if (foundUsers.isEmpty()) {
-            log.warn("User list is empty: {}", foundUsers);
-            return ResponseEntity.notFound().build();
-        } else {
-            log.info("User list is: {}", foundUsers::size);
-            return new ResponseEntity<>(foundUsers, HttpStatus.OK);
-        }
-    }
-
-    @ApiOperation(
-            value = "Get User object from database by Id",
+    @ApiOperation(value = "Get a list of all Users",
             response = User.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
             @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
-            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)
-    })
-    @ResponseStatus(value = HttpStatus.OK)
+            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
+    public ResponseEntity<List<User>> getAllUsers() {
+        return userService.getUsers();
+    }
+
     @GetMapping(produces = "application/json", path = "/{id}")
+    @ApiOperation(value = "Get User object from database by Id",
+            response = User.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
+            @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
+            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
     public ResponseEntity<?> getUserById(@ApiParam(value = "The id of the user", required = true)
                                          @PathVariable Long id) {
-        Optional<User> userById = userService.getUserById(id);
-        if (userById.isEmpty()) {
-            log.info("User with id {} does not exist", id);
-            return ResponseEntity.notFound().build();
-        } else {
-            log.info("User with id {} is found: {}", id, userById);
-            return ResponseEntity.ok(userById);
-        }
+        return userService.getUserById(id);
     }
 
-
+    @PutMapping("average/{id}")
+    @ApiOperation(value = "Updates User's avg rating in database",
+            notes = "If User exists with provided Id then its average rating is updated",
+            response = User.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = HTMLResponseMessages.HTTP_200),
+            @ApiResponse(code = 400, message = HTMLResponseMessages.HTTP_400),
+            @ApiResponse(code = 404, message = HTMLResponseMessages.HTTP_404),
+            @ApiResponse(code = 500, message = HTMLResponseMessages.HTTP_500)})
+    public ResponseEntity<?> updateUsersAverageRating(@ApiParam(value = "The id of the user", required = true)
+                                                      @PathVariable @NonNull Long id) {
+        return userService.updateAverageRatingById(id);
+    }
 }
