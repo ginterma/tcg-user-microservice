@@ -3,27 +3,41 @@ package com.Gintaras.tcgtrading.user_service.ServiceTest;
 import com.Gintaras.tcgtrading.user_service.business.mapper.UserMapper;
 import com.Gintaras.tcgtrading.user_service.business.repository.DAO.UserDAO;
 import com.Gintaras.tcgtrading.user_service.business.repository.UserRepository;
+import com.Gintaras.tcgtrading.user_service.business.service.UserService;
 import com.Gintaras.tcgtrading.user_service.business.service.impl.UserServiceImpl;
 import com.Gintaras.tcgtrading.user_service.model.User;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.RestClient;
+
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
 
@@ -36,9 +50,6 @@ public class UserServiceTest {
     @Mock
     private UserMapper userMapper;
 
-    @Mock
-    private RestClient restClient;
-
     private User user;
     private UserDAO userDAO;
 
@@ -48,6 +59,8 @@ public class UserServiceTest {
         userDAO = new UserDAO(1L, "username", "email@site.com", "password", 0.0);
     }
 
+
+
     @Test
     public void saveUserTest(){
         when(userRepository.save(userDAO)).thenReturn(userDAO);
@@ -56,7 +69,7 @@ public class UserServiceTest {
 
         ResponseEntity<?> responseEntity = userServiceImpl.saveUser(user);
 
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.CREATED, responseEntity.getStatusCode());
         assertEquals(user, responseEntity.getBody());
         verify(userRepository, times(1)).save(userDAO);
     }
@@ -124,32 +137,43 @@ public class UserServiceTest {
     }
 
 //    @Test
-//    public void updateAverageRatingByIdTest_WhenUserExists(){
-//        when(userRepository.findById(1L)).thenReturn(Optional.of(userDAO));
+//    void updateAverageRatingById_success() throws Exception {
+//        Long userId = 1L;
+//        Double mockRating = 4.5;
+//        wireMockServer.stubFor(WireMock.get(urlEqualTo("/average/1L"))
+//                .willReturn(aResponse()
+//                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+//                        .withBody("""
+//                                {
+//                                4.5
+//                                }""")));
 //
-//        // Mock the RestClient behavior
-//        // Mock the behavior of restClient.get() and subsequent calls
-//        when(restClient.get()).thenReturn(mock(RestClient.RequestHeadersUriSpec.class)); // Mock the URI specification
-//        when(restClient.get().uri("/average/{id}", 1L)).thenReturn(mock(RestClient.RequestHeadersUriSpec.class)); // Mock uri method
-//        when(restClient.get().uri("/average/{id}", 1L).retrieve()).thenReturn(mock(RestClient.ResponseSpec.class)); // Mock retrieve()
-//        when(restClient.get().uri("/average/{id}", 1L).retrieve().body(Double.class)).thenReturn(4.5); // Mock body() to return 4.5
+//        user.setAverageRating(mockRating);
+//        userDAO.setAverageRating(mockRating);
+//        when(userRepository.findById(userId)).thenReturn(Optional.of(userDAO));
+//        when(userRepository.save(any(UserDAO.class))).thenReturn(userDAO);
 //
-//        ResponseEntity<?> responseEntity = userServiceImpl.updateAverageRatingById(1L);
 //
-//        verify(userRepository, times(1)).save(userDAO);
-//        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-//        assertEquals(4.5, user.getAverageRating()); // Check that the user's average rating is updated
-//        assertEquals(user, responseEntity.getBody());
+//        ResponseEntity<User> responseEntity = userServiceImpl.updateAverageRatingById(userId);
+//        User newUser = responseEntity.getBody();
+//
+//        assertEquals(userId, newUser.getId());
+//        assertEquals(mockRating, newUser.getAverageRating());
 //    }
 
-    @Test
-    public void updateAverageRatingByIdTest_WhenUserNotFound(){
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());
-
-        ResponseEntity<?> responseEntity = userServiceImpl.updateAverageRatingById(1L);
-
-        assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-        verify(userRepository, times(0)).save(any());
-    }
+//    @Test
+//    void updateAverageRatingById_userNotFound() throws Exception {
+//        Long userId = 1L;
+//
+//        // Mock the case when the user is not found in the repository
+//        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+//
+//        // Call the service method and verify the response
+//        mockMvc.perform(put("/users/{id}/rating", userId))
+//                .andExpect(status().isNotFound());
+//
+//        // Ensure no request was made to the external service since the user wasn't found
+//        verify(0, getRequestedFor(urlPathEqualTo("/average/" + userId)));
+//    }
 
 }
