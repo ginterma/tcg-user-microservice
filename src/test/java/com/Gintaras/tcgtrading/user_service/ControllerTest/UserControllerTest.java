@@ -1,6 +1,5 @@
 package com.Gintaras.tcgtrading.user_service.ControllerTest;
 
-import com.Gintaras.tcgtrading.user_service.business.repository.DAO.UserDAO;
 import com.Gintaras.tcgtrading.user_service.business.service.UserService;
 import com.Gintaras.tcgtrading.user_service.controller.UserController;
 import com.Gintaras.tcgtrading.user_service.model.User;
@@ -16,6 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +35,14 @@ public class UserControllerTest {
     @MockitoBean
     UserService userService;
 
+    @MockitoBean
+    WebClient webClient;
+
     private User user;
-    private UserDAO userDAO;
 
     @BeforeEach
     public void setUp(){
         user = new User(1L, "username", "email@site.com", "password", 0.0);
-        userDAO = new UserDAO(1L, "username", "email@site.com", "password", 0.0);
     }
 
     @Test
@@ -139,7 +140,6 @@ public class UserControllerTest {
 
     @Test
     public void getUserTest_UserExists() throws Exception {
-
         when(userService.getUserById(1L)).thenReturn(ResponseEntity.ok(user));
 
         mockMvc.perform(MockMvcRequestBuilders.get(USER_URI + "/" + 1L))

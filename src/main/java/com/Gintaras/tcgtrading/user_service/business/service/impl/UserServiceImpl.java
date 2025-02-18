@@ -6,11 +6,10 @@ import com.Gintaras.tcgtrading.user_service.business.repository.UserRepository;
 import com.Gintaras.tcgtrading.user_service.business.service.UserService;
 import com.Gintaras.tcgtrading.user_service.model.User;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,18 +19,15 @@ import java.util.stream.Collectors;
 @Log4j2
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    UserRepository userRepository;
+   private final UserMapper userMapper;
+   private final UserRepository userRepository;
+   private final WebClient webClient;
 
-    @Autowired
-    UserMapper userMapper;
-
-    private final RestClient restClient;
-
-    public UserServiceImpl() {
-        this.restClient = RestClient.builder()
-                .baseUrl("http://localhost:8081/api/v1/rating").build();
-    }
+   public UserServiceImpl(UserMapper userMapper, UserRepository userRepository, WebClient webClient){
+       this.userMapper = userMapper;
+       this.userRepository = userRepository;
+       this.webClient = webClient;
+   }
 
     @Override
     public ResponseEntity<User> saveUser(User user){
@@ -80,16 +76,16 @@ public class UserServiceImpl implements UserService {
             log.warn("User with id {} does not exist", id);
             return ResponseEntity.notFound().build();
         } else {
-            Double userAvgRating = restClient.get().uri("/average/{id}", id)
-                    .retrieve().body(Double.class);
+            Double userAvgRating = webClient.get()
+                    .uri("/average/{id}", id)
+                    .retrieve()
+                    .bodyToMono(Double.class)
+                    .block();
+
             user.get().setAverageRating(userAvgRating);
-            userRepository.save(userMapper.UserToUserDAO(user.get()));
+            UserDAO responseUser = userRepository.save(userMapper.UserToUserDAO(user.get()));
             log.info("User with id {} average rating has been updated: {}", id, userAvgRating);
-            return ResponseEntity.ok(user.get());
+            return ResponseEntity.ok(userMapper.UserDAOToUser(responseUser));
         }
     }
-
-
-
-
 }

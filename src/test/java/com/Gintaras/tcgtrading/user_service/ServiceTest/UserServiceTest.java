@@ -3,66 +3,64 @@ package com.Gintaras.tcgtrading.user_service.ServiceTest;
 import com.Gintaras.tcgtrading.user_service.business.mapper.UserMapper;
 import com.Gintaras.tcgtrading.user_service.business.repository.DAO.UserDAO;
 import com.Gintaras.tcgtrading.user_service.business.repository.UserRepository;
-import com.Gintaras.tcgtrading.user_service.business.service.UserService;
 import com.Gintaras.tcgtrading.user_service.business.service.impl.UserServiceImpl;
 import com.Gintaras.tcgtrading.user_service.model.User;
-import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
 
-    @InjectMocks
-    private UserServiceImpl userServiceImpl;
-
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private WebClient webClient;
+
+    @Mock
+    private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
+
+    @Mock
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
+
+    @Mock
+    private WebClient.ResponseSpec responseSpec;
+
+    @InjectMocks
+    private UserServiceImpl userServiceImpl;
 
     private User user;
     private UserDAO userDAO;
 
+
     @BeforeEach
-    public void setUp(){
-        user = new User(1L, "username", "email@site.com", "password", 0.0);
-        userDAO = new UserDAO(1L, "username", "email@site.com", "password", 0.0);
+    public void setUp() {
+        user = new User(1L, "username", "email@site.com", "password", 4.5);
+        userDAO = new UserDAO(1L, "username", "email@site.com", "password", 4.5);
     }
 
-
-
     @Test
-    public void saveUserTest(){
+    public void saveUserTest() {
         when(userRepository.save(userDAO)).thenReturn(userDAO);
         when(userMapper.UserToUserDAO(user)).thenReturn(userDAO);
         when(userMapper.UserDAOToUser(userDAO)).thenReturn(user);
@@ -75,7 +73,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void getUserByIdTest_IdValid(){
+    public void getUserByIdTest_IdValid() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(userDAO));
         when(userMapper.UserDAOToUser(userDAO)).thenReturn(user);
 
@@ -87,7 +85,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void getUserByIdTest_IdInvalid(){
+    public void getUserByIdTest_IdInvalid() {
         when(userRepository.findById(0L)).thenReturn(Optional.empty());
 
         ResponseEntity<?> responseEntity = userServiceImpl.getUserById(0L);
@@ -98,7 +96,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void getUsersTest(){
+    public void getUsersTest() {
         List<UserDAO> userDAOList = new ArrayList<>();
         userDAOList.add(userDAO);
         List<User> userList = new ArrayList<>();
@@ -114,7 +112,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void deleteUserTest_WhenIdExists(){
+    public void deleteUserTest_WhenIdExists() {
         when(userRepository.existsById(1L)).thenReturn(true);
         doNothing().when(userRepository).deleteById(1L);
 
@@ -126,7 +124,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void deleteUserTest_WhenIdNotExists(){
+    public void deleteUserTest_WhenIdNotExists() {
         when(userRepository.existsById(1L)).thenReturn(false);
 
         ResponseEntity<?> responseEntity = userServiceImpl.deleteUserById(1L);
@@ -136,44 +134,25 @@ public class UserServiceTest {
         assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
     }
 
-//    @Test
-//    void updateAverageRatingById_success() throws Exception {
-//        Long userId = 1L;
-//        Double mockRating = 4.5;
-//        wireMockServer.stubFor(WireMock.get(urlEqualTo("/average/1L"))
-//                .willReturn(aResponse()
-//                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-//                        .withBody("""
-//                                {
-//                                4.5
-//                                }""")));
-//
-//        user.setAverageRating(mockRating);
-//        userDAO.setAverageRating(mockRating);
-//        when(userRepository.findById(userId)).thenReturn(Optional.of(userDAO));
-//        when(userRepository.save(any(UserDAO.class))).thenReturn(userDAO);
-//
-//
-//        ResponseEntity<User> responseEntity = userServiceImpl.updateAverageRatingById(userId);
-//        User newUser = responseEntity.getBody();
-//
-//        assertEquals(userId, newUser.getId());
-//        assertEquals(mockRating, newUser.getAverageRating());
-//    }
+    @Test
+    void updateAverageRatingById_success() throws Exception {
+        Long userId = 1L;
+        when(userRepository.findById(userId)).thenReturn(Optional.of(userDAO));
+        when(userMapper.UserDAOToUser(userDAO)).thenReturn(user);
+        when(userMapper.UserToUserDAO(user)).thenReturn(userDAO);
+        when(userRepository.save(userDAO)).thenReturn(userDAO);
 
-//    @Test
-//    void updateAverageRatingById_userNotFound() throws Exception {
-//        Long userId = 1L;
-//
-//        // Mock the case when the user is not found in the repository
-//        when(userRepository.findById(userId)).thenReturn(Optional.empty());
-//
-//        // Call the service method and verify the response
-//        mockMvc.perform(put("/users/{id}/rating", userId))
-//                .andExpect(status().isNotFound());
-//
-//        // Ensure no request was made to the external service since the user wasn't found
-//        verify(0, getRequestedFor(urlPathEqualTo("/average/" + userId)));
-//    }
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri("/average/{id}", userId)).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(Double.class)).thenReturn(Mono.just(6.0));
+
+
+        ResponseEntity<User> responseEntity = userServiceImpl.updateAverageRatingById(userId);
+        User newUser = responseEntity.getBody();
+
+        assertEquals(userId, responseEntity.getBody().getId());
+        assertEquals(6.0, responseEntity.getBody().getAverageRating());
+    }
 
 }
