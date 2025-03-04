@@ -1,0 +1,30 @@
+name: Java CI/CD Pipeline  # Name of the pipeline
+
+on:
+  push:
+    branches:
+      - main  # Runs when code is pushed to 'main' branch
+  pull_request:  # Runs when a pull request is created
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Runs on a fresh Ubuntu machine
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3  # Pulls the latest code from GitHub
+
+      - name: Set up JDK 21 (Amazon Corretto)
+        uses: actions/setup-java@v3  # Sets up Java
+        with:
+          distribution: 'corretto'  # Amazon Corretto JDK
+          java-version: '21'  # Version 21 (latest)
+
+      - name: Verify Java Version
+        run: java -version  # Prints Java version to verify setup
+
+      - name: Build with Maven
+        run: mvn clean package  # Compiles and packages the project
+
+      - name: Run tests
+        run: mvn test  # Runs unit tests
