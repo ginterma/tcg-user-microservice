@@ -10,6 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest  # Runs on a fresh Ubuntu machine
 
+    env:
+      SPRING_PROFILES_ACTIVE: local  # Set the active profile to 'local' for this job
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3  # Pulls the latest code from GitHub
